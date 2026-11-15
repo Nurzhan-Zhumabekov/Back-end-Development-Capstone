@@ -1,29 +1,119 @@
-apiVersion: apps/v1
-kind: # {insert kind here}
+apiVersion: v1
+kind: ConfigMap
 metadata:
+  name: djangoserver-config
+data:
+  DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,band.example.com"
+  DJANGO_CSRF_TRUSTED_ORIGINS: "https://band.example.com"
+  DJANGO_SECURE_COOKIES: "1"
+  DJANGO_TRUST_PROXY: "0"
+  PICTURES_SERVICE_URL: "https://pictures.example.com"
+  SONGS_SERVICE_URL: "https://songs.example.com"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: djangoserver-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: djangoserver
+spec:
+  type: ClusterIP
+  selector:
+    run: djangoserver
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: djangoserver
   labels:
     run: djangoserver
-  name: djangoserver
 spec:
   replicas: 1
   selector:
     matchLabels:
       run: djangoserver
   strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       labels:
         run: djangoserver
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-      - image: # {insert image here}
-        imagePullPolicy: Always
-        name: djangoserver
-        ports:
-        - containerPort: # {insert port here}
-          protocol: TCP
-      restartPolicy: Always
+        - name: djangoserver
+          image: registry.example.com/djirection-band:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: djangoserver-config
+          env:
+            - name: DJANGO_DEBUG
+              value: "0"
+            - name: DJANGO_DB_PATH
+              value: /data/db.sqlite3
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: djangoserver-secret
+                  key: DJANGO_SECRET_KEY
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: "127.0.0.1"
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: "127.0.0.1"
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: "127.0.0.1"
+            periodSeconds: 10
+          volumeMounts:
+            - name: sqlite-data
+              mountPath: /data
+      volumes:
+        - name: sqlite-data
+          persistentVolumeClaim:
+            claimName: djangoserver-data

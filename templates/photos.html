@@ -1,20 +1,22 @@
-{% extends "base.html" %} {% load static %} {% block content %}
-<div class="container">
-  <div class="row">
-    {% for photo in photos %}
-    <div class="col-lg-4 col-md-6 d-flex align-items-stretch py-3 mb-3">
-      <div class="card col-12">
-        <img class="card-img-top" src="{{photo.pic_url }}" alt="" />
-        <div class="card-body d-flex flex-column">
-          <h5 class="card-title">{{ photo.event_date }}</h5>
-          <p class="card-text mb-4">
-            {{ photo.event_city }}, {{ photo.event_state }}
-          </p>
-        </div>
+{% extends "base.html" %}
+{% block content %}
+<h2>Photos</h2>
+{% if error %}
+<p class="alert alert-warning" role="alert">{{ error }}</p>
+{% else %}
+<div class="row">
+  {% for photo in photos %}
+  <div class="col-lg-4 col-md-6 d-flex align-items-stretch py-3 mb-3">
+    <article class="card col-12">
+      <img class="card-img-top" src="{{ photo.pic_url }}" loading="lazy"
+           alt="Concert photo from {{ photo.event_city }}">
+      <div class="card-body">
+        <h3 class="card-title h5">{{ photo.event_date }}</h3>
+        <p class="card-text">{{ photo.event_city }}{% if photo.event_state %}, {{ photo.event_state }}{% endif %}</p>
       </div>
-    </div>
-    {% endfor %}
+    </article>
   </div>
+  {% empty %}<p>No photos are available yet.</p>{% endfor %}
 </div>
-
+{% endif %}
 {% endblock %}

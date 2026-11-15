@@ -12,19 +12,18 @@
             {% csrf_token %}
             <input
               name="concert_id"
-              type="number"
+              type="hidden"
               value="{{concert_details.id}}"
-              hidden="hidden"
             />
             <div class="input-group mb-3">
               <label class="input-group-text" for="attendee_choice">RSVP</label>
-              <select class="form-select" name="attendee_choice" required>
+              <select class="form-select" id="attendee_choice" name="attendee_choice" required>
                 {% for attending_choice in attending_choices %}
                   <option {% if attending_choice.0 == status %}selected {% endif %} value="{{ attending_choice.0 }}">{{ attending_choice.1 }}</option>
                 {% endfor %}
               </select>
             </div>
-            <input type="submit" class="btn btn-primary" />
+            <input type="submit" class="btn btn-primary" value="Save RSVP" />
           </form>
         </div>
       </div>

@@ -1,64 +1,24 @@
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth.models import User
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+
+from .models import ConcertAttending
 
 
-class LoginForm(AuthenticationForm):
-    username = forms.CharField(
-        max_length=100,
-        required=True,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "Username",
-                "class": "form-control",
-            }
-        ),
-    )
-    password = forms.CharField(
-        max_length=50,
-        required=True,
-        widget=forms.PasswordInput(
-            attrs={
-                "placeholder": "Password",
-                "class": "form-control",
-                "data-toggle": "password",
-                "id": "password",
-                "name": "password",
-            }
-        ),
-    )
-
-    class Meta:
-        model = User
-        fields = ["username", "password"]
+class StyledForm:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs["class"] = "form-control"
 
 
-class SignUpForm(AuthenticationForm):
-    username = forms.CharField(
-        max_length=100,
-        required=True,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "Username",
-                "class": "form-control",
-            }
-        ),
-    )
-    password = forms.CharField(
-        max_length=50,
-        required=True,
-        widget=forms.PasswordInput(
-            attrs={
-                "placeholder": "Password",
-                "class": "form-control",
-                "data-toggle": "password",
-                "id": "password",
-                "name": "password",
-                "minlength": "3"
-            }
-        ),
-    )
+class LoginForm(StyledForm, AuthenticationForm):
+    pass
 
-    class Meta:
-        model = User
-        fields = ["username", "password"]
+
+class SignUpForm(StyledForm, UserCreationForm):
+    pass
+
+
+class RSVPForm(forms.Form):
+    concert_id = forms.IntegerField(min_value=1)
+    attendee_choice = forms.ChoiceField(choices=ConcertAttending.AttendingChoices.choices)

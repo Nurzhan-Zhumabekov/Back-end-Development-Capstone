@@ -1,17 +1,15 @@
-from datetime import datetime
-
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
-from django.utils.translation import gettext_lazy as _
 
-
-# Create your models here.
 
 class Concert(models.Model):
-    # concert_name
-    # duration
-    # city
-    # date
+    concert_name = models.CharField(max_length=200)
+    duration = models.PositiveSmallIntegerField()
+    city = models.CharField(max_length=100)
+    date = models.DateField()
+
+    class Meta:
+        ordering = ["date", "pk"]
 
     def __str__(self):
         return self.concert_name
@@ -19,49 +17,39 @@ class Concert(models.Model):
 
 class ConcertAttending(models.Model):
     class AttendingChoices(models.TextChoices):
-        NOTHING = "-", _("-")
-        NOT_ATTENDING = "Not Attending", _("Not Attending")
-        ATTENDING = "Attending", _("Attending")
+        NOTHING = "-", "-"
+        NOT_ATTENDING = "Not Attending", "Not Attending"
+        ATTENDING = "Attending", "Attending"
 
-    concert = models.ForeignKey(
-        Concert, null=True, on_delete=models.CASCADE, related_name="attendee"
-    )
-    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    concert = models.ForeignKey(Concert, on_delete=models.CASCADE, related_name="attendee")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     attending = models.CharField(
-        max_length=100,
-        choices=AttendingChoices.choices,
-        default=AttendingChoices.NOTHING,
+        max_length=20, choices=AttendingChoices.choices, default=AttendingChoices.NOTHING
     )
 
     class Meta:
-        unique_together = ['concert', 'user']
+        constraints = [
+            models.UniqueConstraint(fields=["concert", "user"], name="one_rsvp_per_concert_user")
+        ]
 
     def __str__(self):
         return self.attending
 
 
 class Photo(models.Model):
-    # id
-    # pic_url
-    # event_country
-    # event_state
-    # event_city
-    # event_date
+    pic_url = models.URLField(max_length=500)
+    event_country = models.CharField(max_length=100, blank=True)
+    event_state = models.CharField(max_length=100, blank=True)
+    event_city = models.CharField(max_length=100)
+    event_date = models.CharField(max_length=40)
 
     class Meta:
         managed = False
-
-    def __str__(self):
-        return self.pic_url
 
 
 class Song(models.Model):
-    # id
-    # title
-    # lyrics
+    title = models.CharField(max_length=200)
+    lyrics = models.TextField()
 
     class Meta:
         managed = False
-
-    def __str__(self):
-        return self.title

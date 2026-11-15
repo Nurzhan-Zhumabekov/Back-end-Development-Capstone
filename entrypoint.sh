@@ -1,13 +1,14 @@
-#!/bin/sh
+set -eu
 
-# Make migrations and migrate the database.
-echo "Making migrations and migrating the database. "
-python manage.py makemigrations --noinput
+if [ "${DJANGO_LOCAL_MODE:-0}" = "1" ] && [ -z "${DJANGO_SECRET_KEY:-}" ]; then
+    key_file="$(dirname "$DJANGO_DB_PATH")/local-secret"
+    if [ ! -s "$key_file" ]; then
+        (umask 077; python -c 'from secrets import token_urlsafe; print(token_urlsafe(56))' > "$key_file")
+    fi
+fi
+
 python manage.py migrate --noinput
-
-DJANGO_SUPERUSER_USERNAME=admin \
-DJANGO_SUPERUSER_PASSWORD=admin \
-DJANGO_SUPERUSER_EMAIL="admin@admin.com" \
-python manage.py createsuperuser --noinput
-
+if [ "${DJANGO_SEED_DEMO:-0}" = "1" ]; then
+    python manage.py seed_demo
+fi
 exec "$@"
